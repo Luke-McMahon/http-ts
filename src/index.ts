@@ -2,11 +2,12 @@ import express from "express";
 import { handlerReadiness } from "./api/readiness.js";
 import { handlerAdminMetrics } from "./api/metrics.js";
 import {
+	errorHandler,
 	middlewareLogResponse,
 	middlewareMetricsInc
 } from './api/middleware.js';
 import { handlerReset } from "./api/reset.js";
-import { handlerChirpsValidate } from "./api/validateChirp.js";
+import { handlerChirpsValidate } from "./api/chirps.js";
 
 const app = express();
 const PORT = 8080;
@@ -27,6 +28,8 @@ apiRouter.post("/validate_chirp", handlerChirpsValidate);
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
 app.use("/admin", adminRouter);
 app.use("/api", apiRouter);
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
 	console.log(`Server is running at http://localhost:${PORT}`);
