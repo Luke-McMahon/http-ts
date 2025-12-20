@@ -15,6 +15,7 @@ import { handlerReset } from "./api/reset.js";
 import { handlerChirpGet, handlerChirpsCreate, handlerChirpsGet } from "./api/chirps.js";
 import { config } from "./config.js";
 import { handlerUserCreate } from "./api/users.js";
+import { handlerLogin } from "./api/auth.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -36,7 +37,7 @@ apiRouter.get("/chirps", handlerChirpsGet);
 apiRouter.get("/chirps/:chirpId", handlerChirpGet);
 apiRouter.post("/chirps", handlerChirpsCreate);
 apiRouter.post("/users", handlerUserCreate);
-
+apiRouter.post("/login", handlerLogin);
 
 app.use("/app", middlewareMetricsInc, express.static("./src/app"));
 app.use("/admin", adminRouter);
