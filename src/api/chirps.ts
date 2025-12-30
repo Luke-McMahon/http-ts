@@ -1,8 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { respondWithJSON } from "./json.js";
-import { BadRequestError, NotFoundError } from "../errors.js";
+import { BadRequestError, NotFoundError, UserNotAuthenticatedError } from "../errors.js";
 import { createChirp, getChirp, getChirps } from "../db/queries/chirps.js";
+import { getBearerToken, validateJWT } from "../auth.js";
+import { config } from "../config.js";
 
 export async function handlerChirpGet(req: Request, res: Response, next: NextFunction) {
 	try {
@@ -29,9 +31,15 @@ export async function handlerChirpsGet(req: Request, res: Response, next: NextFu
 
 export async function handlerChirpsCreate(req: Request, res: Response, next: NextFunction) {
 	try {
+
+		const token = getBearerToken(req);
+		const userId = validateJWT(token, config.jwt.secret);
+		if (!userId) {
+			throw new UserNotAuthenticatedError("unauthorized");
+		}
+
 		type parameters = {
 			body: string;
-			userId: string;
 		};
 
 		const maxChirpLength = 140;
@@ -41,10 +49,6 @@ export async function handlerChirpsCreate(req: Request, res: Response, next: Nex
 			throw new BadRequestError(`Chirp is too long. Max length is ${maxChirpLength}`);
 		}
 
-		if (!params.userId) {
-			throw new BadRequestError("Missing required fields");
-		}
-
 		const naughtyWords = ["kerfuffle", "sharbert", "fornax"];
 		const searchPattern = new RegExp(naughtyWords.join("|"), "gi");
 
@@ -52,7 +56,7 @@ export async function handlerChirpsCreate(req: Request, res: Response, next: Nex
 
 		const chirp = await createChirp({
 			body: cleanedBody,
-			user_id: params.userId,
+			user_id: userId,
 		});
 
 		respondWithJSON(res, 201, {

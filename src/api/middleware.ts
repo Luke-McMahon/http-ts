@@ -28,7 +28,6 @@ export function middlewareMetricsInc(
 	next();
 }
 
-
 export function errorHandler(
 	err: Error, req: Request, res: Response, next: NextFunction
 ) {

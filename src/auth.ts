@@ -1,10 +1,11 @@
+import type { Request } from "express";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 
-import { UserNotAuthenticatedError } from "./errors.js";
+import { UserForbiddenError, UserNotAuthenticatedError } from "./errors.js";
+import { config } from "./config.js";
 
-const TOKEN_ISSUER = "chirpy";
 
 export async function hashPassword(password: string) {
 	return argon2.hash(password);
@@ -19,6 +20,16 @@ export async function checkPasswordHash(password: string, hash: string) {
 	}
 }
 
+export function getBearerToken(req: Request): string {
+	const raw = req.get("authorization");
+	if (!raw) throw new UserForbiddenError("Authorization header not present");
+
+	const match = raw.trim().match(/^Bearer\s+(.+)$/i);
+	if (!match) throw new UserForbiddenError("Invalid Authorization header format");
+
+	return match[1].trim();
+}
+
 type payload = Pick<JwtPayload, "iss" | "sub" | "iat" | "exp">;
 
 export function makeJWT(userID: string, expiresIn: number, secret: string) {
@@ -26,7 +37,7 @@ export function makeJWT(userID: string, expiresIn: number, secret: string) {
 	const expiresAt = issuedAt + expiresIn;
 	const token = jwt.sign(
 		{
-			iss: TOKEN_ISSUER,
+			iss: config.jwt.issuer,
 			sub: userID,
 			iat: issuedAt,
 			exp: expiresAt,
@@ -46,7 +57,7 @@ export function validateJWT(tokenString: string, secret: string) {
 		throw new UserNotAuthenticatedError("Invalid token");
 	}
 
-	if (decoded.iss !== TOKEN_ISSUER) {
+	if (decoded.iss !== config.jwt.issuer) {
 		throw new UserNotAuthenticatedError("Invalid issuer");
 	}
 
